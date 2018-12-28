@@ -34,7 +34,7 @@ void xbinGCD(T a, T b, T &pu, T &pv)
 }
 
 template<typename T> 
-void montgomery( const T *x, const T *y, unsigned size, const T n, const T k, const T r_1, T *result )
+void montgomery( const T *x, const T *y, unsigned size, const T n, const T r, const T k, const T r_1, const T n_, T *result )
 {
 	for( unsigned idx = 0; idx < size; idx++ )
 	{
@@ -49,7 +49,7 @@ void montgomery( const T *x, const T *y, unsigned size, const T n, const T k, co
 			A = (A + (A & 1) * n) >> 1;
 		}
 		
-		result[idx] = A > n ? A - n : A;
+		result[idx] = reduce(A > n ? A - n : A, r, n, n_);
 	}
 }
 
@@ -104,7 +104,7 @@ int main()
     //cudaMemcpy((void *)d_a, (const void*)h_a, sizeof(uint128_t) * 1024 * 128, cudaMemcpyHostToDevice);
     //cudaMemcpy((void *)d_b, (const void*)h_b, sizeof(uint128_t) * 1024 * 128, cudaMemcpyHostToDevice);
 
-    montgomery( h_a, h_b, 1024 * 128, n, k, r_1, h_result);
+    montgomery( h_a, h_b, 1024 * 128, n, r, k, r_1, n_, h_result);
 	/*cudaError_t error = cudaGetLastError();
 	if (error != cudaSuccess)
 	{
@@ -116,9 +116,9 @@ int main()
 	*/
 	for( unsigned i = 0; i < 1024 * 128; i++ )
     {
-		if( ((h_a[i] * h_b[i]) << k) % n != h_result[i] )
+		if( h_a[i] * h_b[i] % n != h_result[i] )
 		{
-			std::cout << ((h_a[i] * h_b[i]) << k) % n << " " << h_result[i] << " " << i << std::endl;
+			std::cout << h_a[i] * h_b[i] % n << " " << h_result[i] << " " << i << std::endl;
 			return 1;
 		}
     }
