@@ -1,5 +1,5 @@
-CC=nvcc
-CFLAGS=-std=c++11 -O3 -m64
+CC=/usr/local/cuda-8.0/bin/nvcc
+CFLAGS=-std=c++11 -O3 -m64 -ccbin /usr/bin/g++-4.8
 INCLUDE=include
 OBJS=objs
 SOURCES=src
