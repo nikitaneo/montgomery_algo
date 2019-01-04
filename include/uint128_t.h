@@ -831,11 +831,11 @@ uint128_t uint128_t::operator-() const{
     return ~*this + uint128_t{1};
 }
 
-const uint64_t & uint128_t::upper() const{
+CUDA_CALLABLE_MEMBER const uint64_t & uint128_t::upper() const{
     return UPPER;
 }
 
-const uint64_t & uint128_t::lower() const{
+CUDA_CALLABLE_MEMBER const uint64_t & uint128_t::lower() const{
     return LOWER;
 }
 

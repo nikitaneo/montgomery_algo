@@ -6,9 +6,17 @@
 #include <cuda_runtime.h>
 #include <chrono>
 
-__host__ __device__ uint64_t inline get_bit(const uint64_t* arr, uint64_t n)
+__host__ __device__ uint64_t inline get_bit(const uint128_t &a, uint64_t n)
 {
-	return (arr[n / 64] >> (n % 64)) & 1;
+	uint64_t t = n < 64 ? a.lower() : a.upper();
+	return (t >> (n % 64)) & 1;
+}
+
+template<typename T>
+__host__ __device__ inline T reduce( const T &x, const T &r, unsigned k, const T &n, const T &n_ )
+{
+	T a = (x + (((x % r) * n_) % r) * n) >> k;
+	return a > n ? a - n : a;
 }
 
 // Solve a*x - b*y = d 
@@ -34,23 +42,29 @@ void xbinGCD(T a, T b, T &pu, T &pv)
 	pv = v;
 }
 
-template<typename T> 
-__global__ void montgomery_gpu( const T *x, const T *y, unsigned size, const T n, const T r, unsigned k, const T r_1, const T n_, T *result )
+__global__ void montgomery_gpu( const uint128_t *x,
+								const uint128_t *y,
+								unsigned size,
+								const uint128_t n,
+								const uint128_t r,
+								unsigned k,
+								const uint128_t r_1,
+								const uint128_t n_,
+								uint128_t *result )
 {
 	unsigned idx = threadIdx.x + blockIdx.x * blockDim.x;
 
-	T x_tmp = (x[idx] << k) % n;
-	T y_tmp = (y[idx] << k) % n;
-	uint64_t xk[2] = {std::move(x_tmp.lower()), std::move(x_tmp.upper())};
+	uint128_t x_tmp = (x[idx] << k) % n;
+	uint128_t y_tmp = (y[idx] << k) % n;
 
-	T A = 0;
+	uint128_t A = 0;
 	for( unsigned i = 0; i < k; i++ )
 	{
-		A = A + y_tmp * get_bit(xk, i);
+		A = A + y_tmp * get_bit(x_tmp, i);
 		A = (A + (A & 1) * n) >> 1;
 	}
 		
-	result[idx] = reduce(A > n ? A - n : A, r, n, n_);
+	result[idx] = reduce(A > n ? A - n : A, r, k, n, n_);
 }
 
 
@@ -61,16 +75,15 @@ void montgomery_cpu( const T *x, const T *y, unsigned size, const T n, const T r
 	{
 		T x_tmp = (x[idx] << k) % n;
 		T y_tmp = (y[idx] << k) % n;
-		uint64_t xk[2] = {std::move(x_tmp.lower()), std::move(x_tmp.upper())};
 
 		T A = 0;
 		for( unsigned i = 0; i < k; i++ )
 		{
-			A = A + get_bit(xk, i) * y_tmp;
+			A = A + get_bit(x_tmp, i) * y_tmp;
 			A = (A + (A & 1) * n) >> 1;
 		}
 		
-		result[idx] = reduce(A > n ? A - n : A, r, n, n_);
+		result[idx] = reduce(A > n ? A - n : A, r, k, n, n_);
 	}
 }
 
@@ -89,13 +102,6 @@ void naive( const T *x, const T *y, unsigned size, const T n, T *result )
 	{
 		result[idx] = (x[idx] * y[idx]) % n;
 	}
-}
-
-template<typename T>
-__host__ __device__ inline T reduce( const T &x, const T &r, const T &n, const T &n_ )
-{
-	T a = (x + (((x % r) * n_) % r) * n) / r;
-	return a > n ? a - n : a;
 }
 
 int main()
@@ -134,7 +140,8 @@ int main()
     cudaMalloc((void **)&d_b, sizeof(uint128_t) * 1024 * 128);
  	cudaMalloc((void **)&d_a, sizeof(uint128_t) * 1024 * 128);
 	
-	std::default_random_engine gen;
+	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+	std::mt19937_64 gen(seed);
 	std::uniform_int_distribution<uint64_t> dist(1, uint64_t(-1));
 	for( unsigned i = 0; i < 1024 * 128; i++ )
     {
