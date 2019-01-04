@@ -1,18 +1,15 @@
-CC=g++
-CFLAGS=-std=c++11 -g
-INCLUDE=include/uint128_t
+CC=nvcc
+CFLAGS=-std=c++11 -O3 -m64
+INCLUDE=include
 OBJS=objs
 SOURCES=src
 BUILD=build
 
-all: $(OBJS)/main.o $(OBJS)/uint128_t.o
-	$(CC) $(OBJS)/main.o $(OBJS)/uint128_t.o -o $(BUILD)/mult.out $(LIBS) $(CFLAGS)
+all: $(OBJS)/main.o
+	$(CC) $(OBJS)/main.o -o $(BUILD)/mult.out $(LIBS) $(CFLAGS)
 
-$(OBJS)/main.o: $(SOURCES)/main.cpp
-	$(CC) -c $(SOURCES)/main.cpp -o $(OBJS)/main.o -I $(INCLUDE) $(CFLAGS)
-
-$(OBJS)/uint128_t.o: $(SOURCES)/uint128_t.cpp
-	$(CC) -c $(SOURCES)/uint128_t.cpp -o $(OBJS)/uint128_t.o -I $(INCLUDE) $(CFLAGS)
+$(OBJS)/main.o: $(SOURCES)/main.cu include/uint128_t.h
+	$(CC) -c $(SOURCES)/main.cu -o $(OBJS)/main.o -I $(INCLUDE) $(CFLAGS)
 
 clean:
 	rm -rf $(BUILD)/*.out

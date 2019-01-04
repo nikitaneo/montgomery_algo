@@ -932,9 +932,9 @@ uint128_t operator>>(const int64_t & lhs, const uint128_t & rhs){
 }
 
 std::ostream & operator<<(std::ostream & stream, const uint128_t & rhs){
-    char lower[65], upper[64];
-    sprintf(lower, "%"  PRIu64 "", rhs.lower());
-    sprintf(upper, "%"  PRIu64 "", rhs.upper());
+    char lower[64], upper[64];
+    sprintf(lower, rhs.upper() ? "%064llu" : "%llu", (unsigned long long)rhs.lower());
+    sprintf(upper, "%llu", (unsigned long long)rhs.upper());
 
     stream << (rhs.upper() ? upper : "") << lower;
 
