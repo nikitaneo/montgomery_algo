@@ -9,4 +9,4 @@ Test: test.cu
 	$(CC) test.cu -o test $(LDFLAGS) $(CFLAGS) $(INCLUDE)
 
 clean:
-	rm -rf *.o *~ *.h
+	rm -rf *.o *~ *.h test
