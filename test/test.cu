@@ -30,7 +30,7 @@ protected:
         }
     }
 
-    unsigned size{ 128 * 1024 };
+    unsigned size{ 1024 * 1024 };
     uint128_t mod{ 14797879391564958223ULL };
     std::vector<uint128_t> a;
     std::vector<uint128_t> b;

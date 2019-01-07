@@ -43,7 +43,6 @@ __global__ void montgomery_gpu( const T *x,
 								const T n,
 								const T r,
 								unsigned k,
-								const T r_1,
 								const T n_,
 								T *result )
 {
@@ -58,8 +57,8 @@ __global__ void montgomery_gpu( const T *x,
 		A = A + y_tmp * ((x_tmp >> i) & 1);
 		A = (A + (A & 1) * n) >> 1;
 	}
-		
-	result[idx] = reduce(A > n ? A - n : A, r, k, n, n_);
+
+    result[idx] = reduce(A, r, k, n, n_);
 }
 
 
@@ -70,7 +69,6 @@ void montgomery_cpu( 	const T *x,
 						const T n,
 						const T r,
 						unsigned k,
-						const T r_1,
 						const T n_,
 						T *result )
 {
@@ -86,7 +84,7 @@ void montgomery_cpu( 	const T *x,
 			A = (A + (A & 1) * n) >> 1;
 		}
 		
-		result[idx] = reduce(A > n ? A - n : A, r, k, n, n_);
+		result[idx] = reduce(A, r, k, n, n_);
 	}
 }
 
@@ -128,12 +126,12 @@ void modmul_cpu( const T *a, const T *b, unsigned size, const T n, T *result )
     T r_1 = 0;
     T n_ = 0;
 
-	xbinGCD( r / 2, n, r_1, n_ );
+	xbinGCD( r >> 1, n, r_1, n_ );
 	
     /*
 		Launch Montgomery multiplication algorithm
 	*/
-    montgomery_cpu( a, b, size, n, r, k, r_1, n_, result );
+    montgomery_cpu( a, b, size, n, r, k, n_, result );
 }
 
 template<typename T> 
@@ -151,7 +149,7 @@ void modmul_gpu( const T *a, const T *b, unsigned size, const T n, T *result )
     T r_1 = 0;
     T n_ = 0;
 
-	xbinGCD( r / 2, n, r_1, n_ );
+	xbinGCD( r >> 1, n, r_1, n_ );
 
     T *d_result = nullptr, *d_a = nullptr, *d_b = nullptr;
     cudaMalloc((void **)&d_result, sizeof(T) * size);
@@ -167,7 +165,7 @@ void modmul_gpu( const T *a, const T *b, unsigned size, const T n, T *result )
     /*
 		Launch Montgomery multiplication algorithm with CUDA
 	*/
-    montgomery_gpu<<<grid, block>>>( d_a, d_b, size, n, r, k, r_1, n_, d_result );
+    montgomery_gpu<<<grid, block>>>( d_a, d_b, size, n, r, k, n_, d_result );
 	cudaError_t error = cudaGetLastError();
 #ifdef DEBUG
 	if (error != cudaSuccess)
